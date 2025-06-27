@@ -2,7 +2,6 @@
 galaxy_info:
   author: "Djamel"
   description: "Déploiement automatisé de WordPress avec MariaDB sur Ubuntu et Rocky Linux avec ansible."
-  compagny: "Mercedes-benz"
   license: MIT
   min_ansible_version: 2.10
   
