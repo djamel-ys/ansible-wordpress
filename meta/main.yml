@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  author: "Djamel"
+  description: "Déploiement automatisé de WordPress avec MariaDB sur Ubuntu et Rocky Linux avec ansible."
+  compagny: "Mercedes-benz"
+  license: MIT
+  min_ansible_version: 2.10
+  
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "20.04"
+        - "22.04"
+    - name: EL  
+      versions:
+        - "8"
+        - "9"
+  
+  galaxy_tags:
+    - wordpress
+    - web
+    - mariadb
+    - apache
+    - cms
+    - deployment
+    - automation
+    - devops
+ 
+dependencies: []

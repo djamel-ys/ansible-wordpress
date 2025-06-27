@@ -1,0 +1,101 @@
+---
+- name: Suppression de la page par défaut d'Apache (comme dans le script)
+  file:
+    path: /var/www/html/index.html
+    state: absent
+  ignore_errors: yes
+
+- name: Démarrage d'Apache (exactement comme le script)
+  command: service apache2 restart
+  when: ansible_os_family == 'Debian'
+
+- name: Démarrage httpd (Rocky Linux)
+  shell: /usr/sbin/httpd -DFOREGROUND &
+  async: 10
+  poll: 0
+  when: ansible_os_family == 'RedHat'
+
+
+- name: Démarrage de MariaDB en arrière-plan (comme dans le script)
+  shell: mysqld_safe --datadir=/var/lib/mysql &
+  async: 10
+  poll: 0
+  when: ansible_os_family == 'Debian'
+
+- name: Démarrage de MariaDB (Rocky Linux avec systemd)
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+  when: ansible_os_family == 'RedHat'
+
+
+- name: Attendre le démarrage de MariaDB
+  wait_for:
+    port: 3306
+    host: localhost
+    timeout: 30
+
+- name: Sécurisation de MariaDB (commandes exactes du script)
+  shell: |
+    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ wp_root_password }}';"
+    mysql -uroot -p{{ wp_root_password }} -e "DELETE FROM mysql.user WHERE User='';"
+    mysql -uroot -p{{ wp_root_password }} -e "DROP DATABASE IF EXISTS test;"
+    mysql -uroot -p{{ wp_root_password }} -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+    mysql -uroot -p{{ wp_root_password }} -e "FLUSH PRIVILEGES;"
+  ignore_errors: yes
+
+- name: Sécurisation de MariaDB (adaptée pour Rocky Linux)
+  shell: |
+    # Première connexion sans mot de passe pour Rocky Linux
+    mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{{ wp_root_password }}');" || mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ wp_root_password }}';"
+    mysql -uroot -p{{ wp_root_password }} -e "DELETE FROM mysql.user WHERE User='';"
+    mysql -uroot -p{{ wp_root_password }} -e "DROP DATABASE IF EXISTS test;"
+    mysql -uroot -p{{ wp_root_password }} -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
+    mysql -uroot -p{{ wp_root_password }} -e "FLUSH PRIVILEGES;"
+  ignore_errors: yes
+
+- name: Création de la base de données WordPress (comme dans le script)
+  shell: |
+    mysql -uroot -p{{ wp_root_password }} -e "CREATE DATABASE {{ wp_db_name }};"
+    mysql -uroot -p{{ wp_root_password }} -e "CREATE USER '{{ wp_db_user }}'@'localhost' IDENTIFIED BY '{{ wp_db_password }}';"
+    mysql -uroot -p{{ wp_root_password }} -e "GRANT ALL PRIVILEGES ON {{ wp_db_name }}.* TO '{{ wp_db_user }}'@'localhost';"
+    mysql -uroot -p{{ wp_root_password }} -e "FLUSH PRIVILEGES;"
+
+- name: Téléchargement de WordPress (exactement comme le script)
+  shell: |
+    cd /tmp
+    wget https://wordpress.org/latest.zip
+    unzip latest.zip
+    cp -r wordpress/* {{ wp_install_dir }}/
+    chown -R www-data:www-data {{ wp_install_dir }}
+    chmod -R 755 {{ wp_install_dir }}
+  args:
+    creates: "{{ wp_install_dir }}/wp-config-sample.php"
+
+- name: Création automatique du fichier wp-config.php (comme dans le script)
+  shell: |
+    cd {{ wp_install_dir }}
+    cp wp-config-sample.php wp-config.php
+    sed -i "s/database_name_here/{{ wp_db_name }}/" wp-config.php
+    sed -i "s/username_here/{{ wp_db_user }}/" wp-config.php
+    sed -i "s/password_here/{{ wp_db_password }}/" wp-config.php
+    sed -i "s/localhost/localhost/" wp-config.php
+    chown www-data:www-data wp-config.php
+    chmod 640 wp-config.php
+  args:
+    creates: "{{ wp_install_dir }}/wp-config.php"
+
+- name: Configuration Apache pour WordPress (comme dans le script)
+  template:
+    src: wordpress.conf.j2
+    dest: /etc/apache2/sites-available/wordpress.conf
+  when: ansible_os_family == 'Debian'
+  notify: reload apache
+
+- name: Activation du site WordPress (comme dans le script)
+  shell: |
+    a2ensite wordpress.conf
+    a2enmod rewrite
+  when: ansible_os_family == 'Debian'
+  notify: reload apache

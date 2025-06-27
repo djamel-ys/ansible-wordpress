@@ -1,0 +1,8 @@
+---
+wp_db_name: wordpress
+wp_db_user: example          
+wp_db_password: "examplePW"  
+wp_root_password: "examplerootPW"  
+wp_version: latest
+wp_url: "https://wordpress.org/latest.zip"
+wp_install_dir: /var/www/html

@@ -1,0 +1,26 @@
+---
+# Variables fixes du script (priorité haute)
+wp_db_name: wordpress
+wp_db_user: example
+wp_db_password: "examplePW"
+wp_root_password: "examplerootPW"
+wp_url: "https://wordpress.org/latest.zip"
+wp_install_dir: /var/www/html
+
+# Paquets par OS
+debian_packages:
+  - apache2
+  - php
+  - libapache2-mod-php
+  - php-mysql
+  - mariadb-server
+  - wget
+  - unzip
+
+redhat_packages:
+  - httpd
+  - mariadb-server
+  - php
+  - php-mysqlnd
+  - wget
+  - unzip

@@ -1,0 +1,8 @@
+---
+- name: Inclure les tâches spécifiques à l'OS
+  include_tasks: "{{ ansible_os_family | lower }}.yml"
+  tags: os_specific
+
+- name: Inclure les tâches communes
+  include_tasks: common.yml
+  tags: common
